@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "fastapiproject"
+version = "0.1.0"
+description = ""
+authors = ["정승현 <tmdgusya@naver.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.101.0"
+uvicorn = "^0.23.2"
+sqlalchemy = "^2.0.19"
+mysql-connector-python = "^8.1.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
