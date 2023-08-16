@@ -11,6 +11,7 @@ engine = create_engine("mysql+mysqlconnector://root:password@localhost:3306/roac
 DBSession = sessionmaker(engine)
 session = DBSession()
 
+
 class Recommendation(BaseModel):
     # recommendation id
     recommendation_id: int
@@ -18,7 +19,7 @@ class Recommendation(BaseModel):
     recommendation_type: str
     # recommendation score
     recommendation_content: str
-    # recommendation metadata
+    # recommendation metadata (user data or json data)
     recommendation_metadata: dict
 
 
@@ -38,11 +39,14 @@ class Context(BaseModel):
     # context id for recommendation type
     context_id: int
     # action name
-    action_name: str
+    context_name: str
     # user id
     user_id: str
+    # recommendation list for user in context
+    recommendation_list: List[Recommendation]
     # created at
     created_at: str
+
 
 class UserJoinRequest(BaseModel):
     """
@@ -60,6 +64,7 @@ class UserJoinResponse(BaseModel):
     """
     user_id: int
 
+
 class CreateContextRequest(BaseModel):
     """
     Create context request for action
@@ -69,9 +74,31 @@ class CreateContextRequest(BaseModel):
     # user id
     user_id: str
 
+
+class ChoiceRecommendationRequest(BaseModel):
+    """
+    Choice recommendation request for action
+    """
+    # user id
+    user_id: str
+    # recommendation id
+    recommendation_id: str
+
+
+class RejectRecommendationRequest(BaseModel):
+    """
+    Reject recommendation request for action
+    """
+    # user id
+    user_id: str
+    # recommendation id
+    recommendation_id: str
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
 
 @app.post("/join")
 async def join(request: UserJoinRequest) -> UserJoinResponse:
@@ -80,65 +107,62 @@ async def join(request: UserJoinRequest) -> UserJoinResponse:
     """
     return UserJoinResponse(user_id=1)
 
-@app.get("/recommendation/context/search_action")
-async def recommend(action_id: int, action_name: str, user_id: int) -> RecommendationList:
+
+@app.get("/context")
+async def get_contexts() -> List[Context]:
+    return [
+        Context(
+            context_id=1,
+            context_name="search_food",
+            user_id=1,
+            recommendation_list=[],
+            created_at="2021-01-01 00:00:00"
+        )
+    ]
+
+
+@app.get("/context/{context_id}/recommendation")
+async def get_all_recommendation_list_by(
+        context_id: int,
+        recommendation_type: str,
+        recommendation_content: str,
+        user_id: int,
+) -> List[Recommendation]:
     """
-    Get recommendation list by action_id or action_name
-    action_name: search_food, search_bar, etc.
-    action_id: 1, 2, 3, etc.
+    Get recommendation list by context_id, recommendation_type, or recommendation_content
+
+    user_id is used to logging
     """
     # do something for recommendation
-    return RecommendationList(
-        context_id=1,
-        user_id=user_id,
-        action_id=1,
-        recommendation_list=[],
-        created_at="2021-01-01 00:00:00"
-    )
+    return [
+        Recommendation(
+            recommendation_id=1,
+            recommendation_type="food",
+            recommendation_content="food",
+            recommendation_metadata={},
+        )
+    ]
 
 
-@app.get("/recommendation/context/{context_id}")
-async def recommend(context_id: int, user_id: int) -> RecommendationList:
-    """
-    Get recommendation list for user in context
-    """
-    # do something for recommendation
-    return RecommendationList(
-        context_id=context_id,
-        user_id=1,
-        action_id=1,
-        recommendation_list=[],
-        created_at="2021-01-01 00:00:00"
-    )
-
-@app.post("/recommendation/context")
-async def create_context(request: CreateContextRequest) -> Context:
-    """
-    Create context for action
-    action is a group of user actions like search_food or searches something by the search bar, etc.
-    """
-    # create context
-    return Context(
-        # random uuid for context id
-        context_id=uuid.uuid4(),
-        action_name=request.action_id,
-        user_id=request.user_id,
-        created_at="2021-01-01 00:00:00"
-    )
-
-@app.post("/recommendation/{recommendation_id}/reject")
-async def rejectRecommendation(recommendation_id: int, user_id: int) -> bool:
+@app.post("/context/{context_id}/reject")
+async def accept_recommendation(context_id: int, request: ChoiceRecommendationRequest) -> bool:
     """
     Reject recommendation
+
+    - recommendation_id is recommendation_id was rejected
+    - This information will be used to retrain our model
     """
     # do something for recommendation
     return True
 
 
-@app.post("/recommendation/{recommendation_id}/accept")
-async def rejectRecommendation(recommendation_id: int, user_id: int) -> bool:
+@app.post("/context/{context_id}/choice")
+async def reject_recommendation(context_id: int, request: RejectRecommendationRequest) -> bool:
     """
     Accept recommendation
+
+    - recommendation_id is recommendation_id was accepted
+    - This information will be used to retrain our model
     """
     # do something for recommendation
     return True
